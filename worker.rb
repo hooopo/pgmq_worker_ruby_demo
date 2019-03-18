@@ -3,6 +3,18 @@ require 'dotenv/load'
 require 'pry'
 require 'pg'
 require 'mini_sql'
+require 'virtus'
+
+class Worker
+  include Virtus.model
+  attribute :id, Integer
+  attribute :pid, Integer
+  attribute :hostname, String
+  attribute :v, String
+  attribute :labels, Array[String]
+  attribute :started_at, DateTime
+  attribute :last_active_at, DateTime
+end
 
 db = PG.connect(ENV['PGMQ_URL'])
 db.exec 'set search_path to pgmq'
@@ -18,9 +30,11 @@ labels         = '{ruby, pgmq_worker_ruby_demo}'
 started_at     = Time.now.utc
 last_active_at = Time.now.utc
 
-db.prepare("create_worker", "insert into workers (hostname, pid, v, labels, started_at, last_active_at) values ($1, $2, $3, $4, $5, $6 returning *")
-current_worker = db.exec_prepared("create_worker", [hostname, pid, v, labels, started_at, last_active_at])[0]
+db.prepare("create_worker", "insert into workers (hostname, pid, v, labels, started_at, last_active_at) values ($1, $2, $3, $4, $5, $6) returning *")
+result = db.exec_prepared("create_worker", [hostname, pid, v, labels, started_at, last_active_at])[0]
+current_worker = Worker.new(result)
 
+puts "current worker: #{current_worker.attributes.inspect}"
 
 binding.pry
 
