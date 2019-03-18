@@ -1,2 +1,5 @@
 # pgmq_ruby_worker demo
-pgmq worker demo
+
+## Run
+
+* ruby worker.rb
