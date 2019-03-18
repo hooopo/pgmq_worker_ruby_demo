@@ -1,2 +1,2 @@
-# pgmq_ruby_worker
-pgmq worker
+# pgmq_ruby_worker demo
+pgmq worker demo
