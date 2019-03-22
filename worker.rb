@@ -46,6 +46,36 @@ current_worker = Worker.new(result)
 
 puts "current worker: #{current_worker.attributes.inspect}"
 
-binding.pry
+db.prepare("fetch_jobs", %Q{
+  UPDATE ONLY jobs 
+     SET state = 'working'
+   WHERE jid IN (
+                SELECT jid
+                  FROM  ONLY jobs
+                 WHERE state = 'scheduled' AND at <= now()
+              ORDER BY at DESC, priority DESC
+                       FOR UPDATE SKIP LOCKED
+                 LIMIT $1
+    )
+  RETURNING *
+})
+
+db.prepare("complete_jobs", %Q{
+  UPDATE ONLY jobs
+     SET state = 'done',
+         completed_at = now(),
+         worker_id = $1
+   WHERE jid = $2
+})
+
+loop do 
+  db.transaction do |conn|
+    jobs = conn.exec_prepared("fetch_jobs", [10])
+    jobs.each do |job|
+      done_job = conn.exec_prepared("complete_jobs", [current_worker.id, job['jid']])
+      puts "Done Job: #{job['jid']}"
+    end
+  end
+end
 
 puts 'done'
