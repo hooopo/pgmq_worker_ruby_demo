@@ -68,12 +68,27 @@ db.prepare("complete_jobs", %Q{
    WHERE jid = $2
 })
 
+db.prepare("reset_jobs", %Q{
+  UPDATE ONLY jobs 
+     SET state = 'scheduled',
+         retry = retry - 1,
+         worker_id = $1
+   WHERE jid = $2
+})
+
 loop do 
   db.transaction do |conn|
     jobs = conn.exec_prepared("fetch_jobs", [10])
     jobs.each do |job|
       done_job = conn.exec_prepared("complete_jobs", [current_worker.id, job['jid']])
-      puts "Done Job: #{job['jid']}"
+      begin 
+        # handle job
+        raise("boom") if Random.rand <= 0.1
+        puts "Done Job: #{job['jid']}"
+      rescue
+        conn.exec_prepared("reset_jobs", [current_worker.id, job['jid']])
+        puts "Fail Job: #{job['jid']}"
+      end
     end
   end
 end
