@@ -48,7 +48,7 @@ puts "current worker: #{current_worker.attributes.inspect}"
 
 db.prepare("fetch_jobs", %Q{
   UPDATE ONLY jobs 
-     SET state = 'working'
+     SET state = 'working', enqueued_at = now()
    WHERE jid IN (
                 SELECT jid
                   FROM  ONLY jobs
